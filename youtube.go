@@ -8,54 +8,63 @@ import (
 
 var client = youtube.Client{}
 
+func findFormat(formats []youtube.Format, itag int) *youtube.Format {
+	for i := range formats {
+		if formats[i].ItagNo == itag {
+			return &formats[i]
+		}
+	}
+	return nil
+}
+
 func selectVideoAndAudio(video *youtube.Video) (*youtube.Format, *youtube.Format, error) {
+
+	video.Formats.Sort()
 	var bestVideo *youtube.Format
 	var bestAudio *youtube.Format
 
-	// Search tag for video
 	for i := range video.Formats {
-		if video.Formats[i].ItagNo == 399 {
-			bestVideo = &video.Formats[i]
+		f := &video.Formats[i]
+		if f.AudioChannels == 0 && f.QualityLabel == "" {
+			bestVideo = f
 			break
 		}
-	}
-	if bestVideo == nil {
-		for i := range video.Formats {
-			if video.Formats[i].ItagNo == 248 {
-				bestVideo = &video.Formats[i]
-				break
-			}
-		}
-	}
-	if bestVideo == nil {
-		for i := range video.Formats {
-			if video.Formats[i].ItagNo == 137 {
-				bestVideo = &video.Formats[i]
-				break
-			}
-		}
-	}
-	if bestVideo == nil {
-		return nil, nil, fmt.Errorf("Couldn't find a suitable video in normal quality")
 	}
 
-	// Search tag for audio
-	for i := range video.Formats {
-		if video.Formats[i].ItagNo == 251 {
-			bestAudio = &video.Formats[i]
-			break
-		}
-	}
-	if bestAudio == nil {
+	if bestVideo == nil {
 		for i := range video.Formats {
-			if video.Formats[i].ItagNo == 140 {
-				bestAudio = &video.Formats[i]
+			f := &video.Formats[i]
+			if f.QualityLabel != "" {
+				bestVideo = f
 				break
 			}
 		}
 	}
+
+	if bestVideo == nil {
+		return nil, nil, fmt.Errorf("No video streams found")
+	}
+
+	for i := range video.Formats {
+		f := &video.Formats[i]
+		if f.AudioChannels > 0 && f.QualityLabel == "" {
+			bestAudio = f
+			break
+		}
+	}
+
 	if bestAudio == nil {
-		return nil, nil, fmt.Errorf("Couldn't find the audio")
+		for i := range video.Formats {
+			f := &video.Formats[i]
+			if f.AudioChannels > 0 {
+				bestAudio = f
+				break
+			}
+		}
+	}
+
+	if bestAudio == nil {
+		return nil, nil, fmt.Errorf("No audio streams found")
 	}
 
 	return bestVideo, bestAudio, nil

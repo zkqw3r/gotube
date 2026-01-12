@@ -4,10 +4,16 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
+
+	"github.com/briandowns/spinner"
 )
 
 func mergeFiles(videoPath, audioPath, outputPath string) error {
-	fmt.Printf("\nCombining using ffmpeg...\n")
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s.Suffix = " Combining video and audio with FFmpeg..."
+	s.Color("white", "bold")
+	s.Start()
 
 	cmd := exec.Command("ffmpeg",
 		"-i", videoPath,
@@ -18,10 +24,12 @@ func mergeFiles(videoPath, audioPath, outputPath string) error {
 		"-y", outputPath,
 	)
 
-	err := cmd.Run()
+	output, err := cmd.CombinedOutput()
+	s.Stop()
 	if err != nil {
-		return fmt.Errorf("Error ffmpeg: %v. Ensure that ffmpeg is installed and added to PATH.", err)
+		return fmt.Errorf("Error ffmpeg: %v\nLog:\n%s", err, string(output))
 	}
+
 	os.Remove(videoPath)
 	os.Remove(audioPath)
 

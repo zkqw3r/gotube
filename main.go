@@ -2,51 +2,37 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"strings"
+	"path/filepath"
 )
 
 func main() {
+	outputDir := "Videos"
+
 	url, err := getUrl()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Oops! %v\n", err)
-		os.Exit(1)
-	}
+	check(err)
+
+	err = ensureDir(outputDir)
+	check(err)
 
 	fmt.Println("Get info...")
-
 	info, err := getInfo(url)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Oops! %v\n", err)
-		os.Exit(1)
-	}
-
-	safeTitle := strings.ReplaceAll(info.Title, "/", "_")
-	safeTitle = strings.ReplaceAll(safeTitle, "\\", "_")
+	check(err)
 	fmt.Printf("Info received\n\n")
 
 	bestVideo, bestAudio, err := selectVideoAndAudio(info)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Oops! %v\n", err)
-		os.Exit(1)
-	}
-	videoPath, err := downloadOneFile(info, bestVideo, "video_only")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Oops! %v\n", err)
-		os.Exit(1)
-	}
-	audioPath, err := downloadOneFile(info, bestAudio, "audio_only")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Oops! %v\n", err)
-		os.Exit(1)
-	}
-	outputPath := fmt.Sprintf("%v.mp4", safeTitle)
+	check(err)
+
+	videoPath, err := downloadOneFile(info, bestVideo, "video_only", outputDir)
+	check(err)
+
+	audioPath, err := downloadOneFile(info, bestAudio, "audio_only", outputDir)
+	check(err)
+
+	fileName := fmt.Sprintf("%v.mp4", sanitizeFileName(info.Title))
+	outputPath := filepath.Join(outputDir, fileName)
 
 	err = mergeFiles(videoPath, audioPath, outputPath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Oops! %v\n", err)
-		os.Exit(1)
-	}
+	check(err)
 
 	fmt.Printf("Successfully downloaded %v\n", outputPath)
 }
