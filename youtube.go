@@ -8,17 +8,7 @@ import (
 
 var client = youtube.Client{}
 
-func findFormat(formats []youtube.Format, itag int) *youtube.Format {
-	for i := range formats {
-		if formats[i].ItagNo == itag {
-			return &formats[i]
-		}
-	}
-	return nil
-}
-
 func selectVideoAndAudio(video *youtube.Video) (*youtube.Format, *youtube.Format, error) {
-
 	video.Formats.Sort()
 	var bestVideo *youtube.Format
 	var bestAudio *youtube.Format

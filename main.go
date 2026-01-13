@@ -3,36 +3,105 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"time"
+
+	"github.com/vbauerster/mpb/v8"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
 	outputDir := "Videos"
+	logo := `
+  ________     ___________   ___.           
+ ╱  _____╱  ___╲__    ___╱_ _╲_ │__   ____  
+╱   ╲  ___ ╱  _ ╲│    │ │  │  ╲ __ ╲_╱ __ ╲ 
+╲    ╲_╲  (  <_> )    │ │  │  ╱ ╲_╲ ╲  ___╱ 
+ ╲______  ╱╲____╱│____│ │____╱│___  ╱╲___  >
+        ╲╱                        ╲╱     ╲╱ 
+	`
 
-	url, err := getUrl()
-	check(err)
+	for {
+		callClear()
+		fmt.Println(logo)
 
-	err = ensureDir(outputDir)
-	check(err)
+		fmt.Print("Enter video URL (or 'q' to quit): ")
+		url, err := getText()
+		if url == "q" {
+			fmt.Println("Goodbye!")
+			return
+		} else if url == "" {
+			continue
+		}
+		if hasError(err) {
+			continue
+		}
+		if err := ensureDir(outputDir); hasError(err) {
+			fmt.Println("Press Enter to try again...")
+			getText()
+			continue
+		}
 
-	fmt.Println("Get info...")
-	info, err := getInfo(url)
-	check(err)
-	fmt.Printf("Info received\n\n")
+		fmt.Println("Get info...")
+		info, err := getInfo(url)
+		if hasError(err) {
+			continue
+		}
+		fmt.Printf("Info received\n\n")
 
-	bestVideo, bestAudio, err := selectVideoAndAudio(info)
-	check(err)
+		bestVideo, bestAudio, err := selectVideoAndAudio(info)
+		if hasError(err) {
+			continue
+		}
 
-	videoPath, err := downloadOneFile(info, bestVideo, "video_only", outputDir)
-	check(err)
+		var videoPath, audioPath string
+		var g errgroup.Group
+		p := mpb.New(mpb.WithWidth(64), mpb.WithRefreshRate(180*time.Millisecond))
 
-	audioPath, err := downloadOneFile(info, bestAudio, "audio_only", outputDir)
-	check(err)
+		// video
+		g.Go(func() error {
+			path, err := downloadOneFile(p, info, bestVideo, "video_only", outputDir)
+			if err == nil {
+				videoPath = path
+			}
+			return err
+		})
 
-	fileName := fmt.Sprintf("%v.mp4", sanitizeFileName(info.Title))
-	outputPath := filepath.Join(outputDir, fileName)
+		// audio
+		g.Go(func() error {
+			path, err := downloadOneFile(p, info, bestAudio, "audio_only", outputDir)
+			if err == nil {
+				audioPath = path
+			}
+			return err
+		})
 
-	err = mergeFiles(videoPath, audioPath, outputPath)
-	check(err)
+		if err := g.Wait(); err != nil {
+			fmt.Printf("Download error: %v\n", err)
+			fmt.Println("Please try again...")
+			continue
+		}
 
-	fmt.Printf("Successfully downloaded %v\n", outputPath)
+		p.Wait()
+		fmt.Println()
+
+		fileName := fmt.Sprintf("%v.mp4", sanitizeFileName(info.Title))
+		outputPath := filepath.Join(outputDir, fileName)
+
+		err = mergeFiles(videoPath, audioPath, outputPath)
+		if hasError(err) {
+			continue
+		}
+
+		fmt.Printf("Successfully downloaded %v\n", outputPath)
+		answer, err := promptChoice("Download another video? (y/n): ", []string{"y", "n", "yes", "no"})
+		if hasError(err) {
+			continue
+		}
+		if answer == "n" || answer == "no" {
+			fmt.Println("Goodbye!")
+			return
+		}
+		continue
+	}
+
 }

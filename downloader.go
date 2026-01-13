@@ -7,17 +7,16 @@ import (
 	"path/filepath"
 
 	"github.com/kkdai/youtube/v2"
-	"github.com/schollz/progressbar/v3"
+	"github.com/vbauerster/mpb/v8"
+	"github.com/vbauerster/mpb/v8/decor"
 )
 
-func downloadOneFile(info *youtube.Video, format *youtube.Format, filenameSuffix string, outputDir string) (string, error) {
+func downloadOneFile(p *mpb.Progress, info *youtube.Video, format *youtube.Format, filenameSuffix string, outputDir string) (string, error) {
 	stream, size, err := client.GetStream(info, format)
 	if err != nil {
 		return "", err
 	}
 	defer stream.Close()
-
-	fmt.Printf("%s Size: %.2f MB\n", filenameSuffix, float64(size)/1024/1024)
 
 	safeTitle := sanitizeFileName(info.Title)
 	fileName := fmt.Sprintf("%s_%s.mp4", safeTitle, filenameSuffix)
@@ -29,16 +28,24 @@ func downloadOneFile(info *youtube.Video, format *youtube.Format, filenameSuffix
 	}
 	defer file.Close()
 
-	bar := progressbar.DefaultBytes(
-		size,
-		"Downloading",
+	bar := p.AddBar(size,
+		mpb.PrependDecorators(
+			decor.Name(filenameSuffix, decor.WC{W: len(filenameSuffix) + 1, C: decor.DindentRight}),
+			decor.CountersKibiByte("% .2f / % .2f"),
+		),
+		mpb.AppendDecorators(
+			decor.EwmaETA(decor.ET_STYLE_GO, 90),
+			decor.Name(" ] "),
+			decor.Percentage(decor.WCSyncSpace),
+		),
 	)
 
-	_, err = io.Copy(io.MultiWriter(file, bar), stream)
+	proxyReader := bar.ProxyReader(stream)
+	defer proxyReader.Close()
+
+	_, err = io.Copy(file, proxyReader)
 	if err != nil {
 		return "", err
 	}
-	fmt.Println()
-
 	return fullPath, nil
 }

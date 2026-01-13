@@ -4,25 +4,27 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 )
 
-func check(err error) {
+func hasError(err error) bool {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
+		return true
 	}
+	return false
 }
 
-func getUrl() (string, error) {
-	var url string
-	fmt.Print("Enter the video link: ")
+func getText() (string, error) {
+	var text string
 	scanner := bufio.NewScanner(os.Stdin)
 	if !scanner.Scan() {
-		return url, fmt.Errorf("Input error")
+		return text, fmt.Errorf("Input error")
 	}
-	url = strings.TrimSpace(scanner.Text())
-	return url, nil
+	text = strings.TrimSpace(scanner.Text())
+	return text, nil
 }
 
 func sanitizeFileName(name string) string {
@@ -42,4 +44,35 @@ func ensureDir(dirName string) error {
 		return fmt.Errorf("Could not create directory %s: %w", dirName, err)
 	}
 	return nil
+}
+
+func callClear() {
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/c", "cls")
+	} else {
+		cmd = exec.Command("clear")
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Run()
+}
+
+func promptChoice(question string, validOptions []string) (string, error) {
+	scanner := bufio.NewScanner(os.Stdin)
+
+	for {
+		fmt.Print(question)
+		if !scanner.Scan() {
+			return "", fmt.Errorf("Input error")
+		}
+		input := strings.ToLower(strings.TrimSpace(scanner.Text()))
+
+		for _, opt := range validOptions {
+			if input == opt {
+				return input, nil
+			}
+		}
+
+		fmt.Printf("Invalid input. Please enter 'y' or 'no'\n\n")
+	}
 }
