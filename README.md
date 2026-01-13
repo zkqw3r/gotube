@@ -65,11 +65,6 @@ Simply run the executable:
 go run .
 ```
 
-## 📝 To-Do List
-
-- [ ] Add progress bar (TUI)
-- [ ] Command line arguments (flags)
-
 ---
 
 <div align="center">
