@@ -67,7 +67,7 @@ go run .
 
 ## 📝 To-Do List
 
-- [x] Add progress bar (TUI)
+- [ ] Add progress bar (TUI)
 - [ ] Command line arguments (flags)
 
 ---
