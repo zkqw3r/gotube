@@ -32,10 +32,11 @@ func sanitizeFileName(name string) string {
 	for _, char := range symbols {
 		name = strings.ReplaceAll(name, string(char), "_")
 	}
-	if len(name) > 200 {
-		name = name[:200]
+	runes := []rune(name)
+	if len(runes) > 200 {
+		runes = runes[:200]
 	}
-	return name
+	return string(name)
 }
 
 func ensureDir(dirName string) error {
@@ -75,4 +76,24 @@ func promptChoice(question string, validOptions []string) (string, error) {
 
 		fmt.Printf("Invalid input. Please enter 'y' or 'no'\n\n")
 	}
+}
+
+func formatNumber(x int) string {
+	s := fmt.Sprintf("%d", x)
+	if len(s) < 4 {
+		return s
+	}
+
+	res := ""
+	count := 0
+	for i := len(s) - 1; i >= 0; i-- {
+		res = string(s[i]) + res
+		count++
+
+		if count%3 == 0 {
+			res = " " + res
+		}
+	}
+
+	return res
 }

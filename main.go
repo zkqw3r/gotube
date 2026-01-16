@@ -41,12 +41,10 @@ func main() {
 			continue
 		}
 
-		fmt.Println("Get info...")
 		info, err := getInfo(url)
 		if hasError(err) {
 			continue
 		}
-		fmt.Printf("Info received\n\n")
 
 		bestVideo, bestAudio, err := selectVideoAndAudio(info)
 		if hasError(err) {
@@ -59,7 +57,7 @@ func main() {
 
 		// video
 		g.Go(func() error {
-			path, err := downloadOneFile(p, info, bestVideo, "video_only", outputDir)
+			path, err := downloadOneFile(p, info, bestVideo, "Video only", outputDir)
 			if err == nil {
 				videoPath = path
 			}
@@ -68,7 +66,7 @@ func main() {
 
 		// audio
 		g.Go(func() error {
-			path, err := downloadOneFile(p, info, bestAudio, "audio_only", outputDir)
+			path, err := downloadOneFile(p, info, bestAudio, "Audio only", outputDir)
 			if err == nil {
 				audioPath = path
 			}
@@ -92,7 +90,7 @@ func main() {
 			continue
 		}
 
-		fmt.Printf("Successfully downloaded %v\n", outputPath)
+		fmt.Printf("Successfully downloaded: %v\n", sanitizeFileName(info.Title))
 		answer, err := promptChoice("Download another video? (y/n): ", []string{"y", "n", "yes", "no"})
 		if hasError(err) {
 			continue
