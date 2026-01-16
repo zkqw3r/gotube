@@ -6,7 +6,7 @@
 
 <div align="center">
   <h3>⚡ High-performance YouTube Downloader CLI</h3>
-  <img src="demo.gif" width="100%" alt="video example of work">
+  <img src="demonstration.gif" width="100%" alt="video example of work">
   <p>
     <i>Download highest quality video (1080p/4K) + best audio in parallel<br>
     Automatically merged into MP4 via FFmpeg</i>
